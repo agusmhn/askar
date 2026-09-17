@@ -63,16 +63,17 @@
     <input type="file" id="csv-import-input" accept=".csv, .json" class="hidden" onchange="processImportedFile(event)">
 
     <script>
-        const STORAGE_KEY = 'askar_net_clean_db_v7';
+        const STORAGE_KEY = 'askar_net_clean_db_v8';
         
         let db = {
             customers: [],
             packages: [
                 { id: 'pkg-1', name: 'Hemat', speed: '5 Mbps', price: 100000 },
                 { id: 'pkg-2', name: 'Reguler', speed: '7 Mbps', price: 125000 },
-                { id: 'pkg-3', name: 'Medium', speed: '15 Mbps', price: 200000 },
-                { id: 'pkg-4', name: 'Fast', speed: '20 Mbps', price: 250000 },
-                { id: 'pkg-5', name: 'Giga Enterprise', speed: '50 Mbps', price: 500000 }
+                { id: 'pkg-3', name: 'Standar', speed: '10 Mbps', price: 150000 },
+                { id: 'pkg-4', name: 'Medium', speed: '15 Mbps', price: 200000 },
+                { id: 'pkg-5', name: 'Fast', speed: '20 Mbps', price: 250000 },
+                { id: 'pkg-6', name: 'Giga Enterprise', speed: '50 Mbps', price: 500000 }
             ],
             bills: [],
             transactions: [],
