@@ -63,7 +63,7 @@
     <input type="file" id="csv-import-input" accept=".csv, .json" class="hidden" onchange="processImportedFile(event)">
 
     <script>
-        const STORAGE_KEY = 'askar_net_clean_db_v8';
+        const STORAGE_KEY = 'askar_net_clean_db_v10';
         
         let db = {
             customers: [],
@@ -466,7 +466,8 @@
                     <td class="py-4 px-4 sm:px-6">
                         <span class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-xs font-semibold">${c.status}</span>
                     </td>
-                    <td class="py-4 px-4 sm:px-6 text-right space-x-1">
+                    <td class="py-4 px-4 sm:px-6 text-right space-x-1 whitespace-nowrap">
+                        <button onclick="sendWhatsAppReminder('${c.id}')" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 p-2 rounded-xl transition-colors" title="Kirim Pengingat WA"><i class="fa-brands fa-whatsapp text-base"></i></button>
                         <button onclick="editCustomer('${c.id}')" class="text-slate-400 hover:text-blue-600 p-2 transition-colors" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
                         <button onclick="deleteCustomer('${c.id}')" class="text-slate-400 hover:text-rose-600 p-2 transition-colors" title="Hapus"><i class="fa-solid fa-trash"></i></button>
                     </td>
@@ -502,7 +503,7 @@
                     </div>
 
                     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-x-auto">
-                        <table class="w-full text-left border-collapse min-w-[650px]">
+                        <table class="w-full text-left border-collapse min-w-[700px]">
                             <thead>
                                 <tr class="bg-slate-50/70 border-b border-slate-200 text-xs font-semibold text-slate-400 uppercase tracking-wider">
                                     <th class="py-3.5 px-6">NAMA / KONTAK</th>
@@ -573,7 +574,69 @@
                         </form>
                     </div>
                 </div>
+
+                <!-- WhatsApp Reminder Preview Modal -->
+                <div id="wa-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+                    <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4">
+                        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                            <div class="flex items-center gap-2 text-emerald-600 font-bold">
+                                <i class="fa-brands fa-whatsapp text-xl"></i>
+                                <h3>Kirim Pengingat WhatsApp</h3>
+                            </div>
+                            <button onclick="closeWAModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+                        </div>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Tujuan No. WhatsApp</label>
+                                <input type="text" id="wa-phone" readonly class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-mono text-slate-700">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Pesan Pengingat</label>
+                                <textarea id="wa-message" rows="5" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-700 leading-relaxed focus:outline-none"></textarea>
+                            </div>
+                        </div>
+                        <div class="pt-2 flex gap-3">
+                            <button onclick="executeSendWhatsApp()" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-xl text-sm font-semibold shadow-sm flex items-center justify-center gap-2">
+                                <i class="fa-brands fa-whatsapp text-base"></i> Buka WhatsApp & Kirim
+                            </button>
+                            <button onclick="closeWAModal()" class="px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 rounded-xl text-sm font-semibold">Batal</button>
+                        </div>
+                    </div>
+                </div>
             `;
+        }
+
+        function sendWhatsAppReminder(custId) {
+            const customer = db.customers.find(c => c.id === custId);
+            if (!customer) return;
+
+            const unpaidBills = db.bills.filter(b => b.customerId === custId && b.status === 'Belum Lunas');
+            const totalDue = unpaidBills.reduce((acc, curr) => acc + curr.amount, 0);
+            const periodStr = unpaidBills.length > 0 ? unpaidBills[0].period : 'Bulan Berjalan';
+
+            let phoneClean = customer.phone.replace(/[^0-9]/g, '');
+            if (phoneClean.startsWith('0')) {
+                phoneClean = '62' + phoneClean.slice(1);
+            }
+
+            const message = `Halo Yth. *${customer.name}*,\n\nKami dari *${db.company.name}* mengingatkan bahwa tagihan layanan internet Anda untuk paket *${customer.package}* periode *${periodStr}* sebesar *Rp ${totalDue.toLocaleString('id-ID')}* jatuh tempo pada tanggal *${customer.dueDate || '10'}*.\n\nMohon segera lakukan pembayaran agar koneksi internet Anda tetap lancar.\n\nTerima kasih,\n*${db.company.name}*`;
+
+            document.getElementById('wa-phone').value = phoneClean;
+            document.getElementById('wa-message').value = message;
+            document.getElementById('wa-modal').classList.remove('hidden');
+        }
+
+        function closeWAModal() {
+            document.getElementById('wa-modal').classList.add('hidden');
+        }
+
+        function executeSendWhatsApp() {
+            const phone = document.getElementById('wa-phone').value;
+            const message = document.getElementById('wa-message').value;
+            const encoded = encodeURIComponent(message);
+            window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank');
+            closeWAModal();
+            showToast('Mengarahkan ke WhatsApp Web/App', 'success');
         }
 
         function openCustomerModal(id = null) {
@@ -689,7 +752,8 @@
                     <td class="py-4 px-6">
                         <span class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-xs font-semibold">${c.status}</span>
                     </td>
-                    <td class="py-4 px-6 text-right space-x-1">
+                    <td class="py-4 px-6 text-right space-x-1 whitespace-nowrap">
+                        <button onclick="sendWhatsAppReminder('${c.id}')" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 p-2 rounded-xl transition-colors" title="Kirim Pengingat WA"><i class="fa-brands fa-whatsapp text-base"></i></button>
                         <button onclick="editCustomer('${c.id}')" class="text-slate-400 hover:text-blue-600 p-2 transition-colors"><i class="fa-solid fa-pen-to-square"></i></button>
                         <button onclick="deleteCustomer('${c.id}')" class="text-slate-400 hover:text-rose-600 p-2 transition-colors"><i class="fa-solid fa-trash"></i></button>
                     </td>
@@ -777,7 +841,7 @@
                     <td class="py-4 px-4 sm:px-6">
                         <span class="${b.status === 'Lunas' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'} px-3 py-1 rounded-full text-xs font-semibold">${b.status}</span>
                     </td>
-                    <td class="py-4 px-4 sm:px-6 text-right space-x-1">
+                    <td class="py-4 px-4 sm:px-6 text-right space-x-1 whitespace-nowrap">
                         ${b.status === 'Belum Lunas' ? `
                             <button onclick="payBill('${b.id}')" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2 rounded-xl font-medium transition-colors shadow-sm">Bayar</button>
                         ` : `
